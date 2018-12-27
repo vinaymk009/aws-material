@@ -1,0 +1,138 @@
+Public Subnet   = Subnets which are connected to IGW(Internet Gateway) directly is  a Public Subnet.
+
+Private Subnet = Subnets which are not connected to IGW(Internet Gateway) directly is  a Private Subnet.
+
+Steps:
+=====
+  
+
+	
+1. Open the Subnets and select the Routing  Table name from it " AWS-25OCT-RTB".
+	
+    - Open the Routing Table and copy the "AWS-25OCT-RTB" in the filter and now check the Routes. If you can observe here, all the three subnets are associated with this  routing 
+      "AWS-25OCT-RTB", which means it is Public Subnet.
+    -All the 3 subnets are directly connecting to the IGW through the Routing Table.
+	
+     -Create new Subnet called as "AWS-25OCT-Database" and give IP range as 10.1.7.0/24
+	Name=AWS-25OCT-Database
+	VPC= AWS-25OCT
+	Avail.zone=us-east-1a
+	IPv4=10.1.7.0/24
+
+(Note: Here we are not associate this subnet "AWS-25OCT-Database" to the Routing table , because we are here to show the difference between public and private subnets).
+	(Check Image of VPC image1)
+
+2. Enable Public IP assigning on AWS-25OCT-Database
+      -Select the subnet "AWS-25OCT-Database",  Rightclick Modify auto-assign IP and --> check the bo "Enable auto-assign public IPv4 address"
+
+
+3. Deploy two instances, one in Subnet-1(Public) and other in AWS-25OCT-Database(Private)
+	Goto EC2
+	 - Launch Two instances here one is Public and other is Private.
+	 - "PublicServer" and "DBServer"
+	(Note:publicserver ipv4=10.1.4.100 and DBserver IPv4=10.1.7.100)
+
+	-Open the command prompt and ping the public ip 
+		IPv4 Public IP =18.234.190.179  
+		of "PublicServer" and check. We can get the response from it.
+
+	-Open SSH and connect to the "publicserver".
+
+	-After launching the DBServer machine, copy the private ip and check in the command prompt.It should not connect as of now.it throws an error "Request timeout" .
+                Because we didn't launch the NAT Server here,it is coming from outside through the IGW but, it is don't know where to go,  here internet packet is dropping.
+
+	
+
+4. Check the communication for Public instance and DB Instance.
+	- in SSH, check the connectivity between "publicserver" and "DBServer"
+	 [root@ip-10-1-4-100 ~]# ping 10.1.7.100
+	-Connectivity is successful
+
+5. Deploy a NAT Gateway. While deploying make sure you choose public subnet.
+	 -NAT gateway allows  Only Outbound
+	 -IGW allows both inbound and outbound
+
+	VPCs--->NAT Gateways  -> Create NAT Gateway---> Copy the  subnet1a id from the "AWS-25OCT-Subnet1"--->
+	 (Need to add the ElasticIP here) click on "create NewEIP" New EIP (100.24.184.109) creation successful.
+	
+
+6. Create new routing table for "AWS-25OCT-Database" and add routing towards NAT Gateway.
+	-Route Tables
+	   -Create RouteTable --> Provide the
+				NameTag=  "AWS-25OCT-NAT"
+				VPC= select the AWS-25OCT
+	- Need to attach the subnets to it.
+		subnetAssociations=select only "AWS-25OCT-Database" subnet.
+		Route
+			Destination=0.0.0.0/0
+			Target = select the nat.
+	(Note: if we select the igw here, this subnet also becomes public subnet,so need to select the NAT)
+
+	Now, EC2
+	    -Open DBServer machine and connect through SSH using public key.Actually now with this step , I should get error "connection timeout "
+	    -How to connect to the DBServer, then take the duplicate session of ssh now, and through ssh and DBserver PrivateIP. Still we get the error here.
+
+		[root@ip-10-1-4-100 ~]# ssh ec2-user@10.1.7.100
+	
+	 - To connect we need to use the key
+		Open the EC2Machine , and Vim Editor
+			-[root@ip-10-1-4-100 ~]# vi AWS-25OCT.pem
+			-copy the AWS-25OCT.pem file from where the save location and paste in "AWS-25OCT.pem" file, save and exit
+			-Now try again, 
+				[root@ip-10-1-4-100 ~]# ssh -i AWS-25OCT.pem ec2-user@10.1.7.100
+			-got error again, due to security.
+			-change the permission of file
+				[root@ip-10-1-4-100 ~]# chmod 400 AWS-25OCT.pem
+				[root@ip-10-1-4-100 ~]# ll
+			-Now, try to connect 
+				[root@ip-10-1-4-100 ~]# ssh -i AWS-25OCT.pem ec2-user@10.1.7.100
+			-Successful this time
+				[ec2-user@ip-10-1-7-100 ~]$ sudo su -
+			-check the internet connectivity fromt here
+				[root@ip-10-1-7-100 ~]# ping www.google.com
+
+	
+	Now, I need to change the Route table for the AWS-25OCT-NAT, route and then check the ping again.
+			Destination=10.0.0.0/8
+			Target = select the nat.
+			[root@ip-10-1-7-100 ~]# ping www.google.com 
+			Now, internet is not coming through this. Again  change it to previous settings in routing table
+			Destination=0.0.0.0/0
+			Target = select the nat
+
+		Now, again
+		[root@ip-10-1-7-100 ~]# ping www.google.com 
+		packets are coming through this NAT. Now, to prove that, internet is coming through the NAT only again make following changes.
+		Route
+			Destination=0.0.0.0/0
+			Target=select the NAT
+
+
+
+InterviewQuestion: I have the Public IP for the Database server but still , I could not connect to the EC2 machine why?
+		(Ans: If it is a Database Server, we should have NAT server to connect it.Because it is for the security)
+
+7. SSH to public Instance and from there SSH in to DB1 Instance and ping www.google.com and it should be reachable.
+
+8. Prove the traffic is going through NAT Gateway.
+
+
+
+Important Note:
+	NATGateway is not free, it is going to be billed. So, once you complete your practice, need to delete it.
+Before this, need to terminate the EC2 machines.
+1. UnderVPCs--->NAT Gateways-->RightClick Delete NAT
+2. Even after delete , "Elastic IPs" are using the sources, so, once NAT is deleted.
+3. VPCs---> ElasticIPs-> R.Click and RelaseIPs.
+With the above steps, NAT is completely deleted.
+
+
+
+
+
+
+
+
+
+
+

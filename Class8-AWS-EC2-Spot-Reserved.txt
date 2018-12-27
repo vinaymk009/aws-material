@@ -1,0 +1,209 @@
+
+Steps:
+1. Launch one EC2 machine
+
+2. Connect the machine through SSH putty
+
+	When we get the network connection timeout error:
+	Need to check in two places:
+		Route Table
+			- Check the subnet-associations
+			- check the route in route table
+
+3. Most of the machine information will be available, with the following command in ssh
+	[root@ip-10-1-7-218 ~]#ec2-metadata
+
+4. The other way to get the information is using 'curl'(check url)
+	[root@ip-10-1-7-218 ~]# curl http://169.254.169.254/latest/meta-data/
+	ami-id
+	ami-launch-index
+	ami-manifest-path
+	block-device-mapping/
+	events/
+	hostname
+	instance-action
+	instance-id
+	instance-type
+	local-hostname
+	local-ipv4
+	mac
+	metrics/
+	network/
+	placement/
+	profile
+	public-hostname
+	public-ipv4
+	public-keys/
+	reservation-id
+	security-groups
+
+5. To know the particular variable/id information of the above:
+		[root@ip-10-1-7-218 ~]# curl http://169.254.169.254/latest/meta-data/public-ipv4
+		output:
+			52.91.77.217[root@ip-10-1-7-218 ~]#
+	in the similarway, we can find the other variable values.
+	automatic private ip=169.254.169.254
+
+6. http://169.254.169.254
+	- you are not come across this id outside.
+	- this is Automatic generated private ip
+	- So Amazon using this ip to provide the machine information internally.
+	
+	lets check with example:
+		can store the value in a variable like below:
+		[root@ip-10-1-7-218 ~]# myip='curl http://169.254.169.254/latest/meta-data/public-ipv4'
+
+		now we have stored the 'public-ipv4' value in myip variable. To get the value, try this
+		(Note:curl means .......check url)
+
+		[root@ip-10-1-7-218 ~]# $myip
+		check we got the ipv4 value:
+		52.91.77.217[root@ip-10-1-7-218 ~]#
+		we can covert this ip into a variable and use in bash scripting.
+
+		to know which security group is assigned to you
+		[root@ip-10-1-7-218 ~]# curl http://169.254.169.254/latest/meta-data/security-groups
+======================================================================
+Creating a Launch Template
+
+1.EC2 Services ----Launch Templates  ---Create Launch Templates
+
+	LaunchTemplate name ="AWSTraining11"
+	Template version=1.0
+	click on <AddNetWorkDevices>
+		Device=eth0
+		(Note:ifconfig stands for "interface configuration". ... eth0 is the first Ethernet interface. (Additional Ethernet interfaces would be named eth1, eth2, etc.) 
+			This type of interface is usually a NIC connected to the network by a category 5 cable.)	
+	AMI id
+		(check EC2--->Launch Instance---> <Amazon Linux AMI 2018.03.0 (HVM), SSD Volume Type - ami-0ff8a91507f77f867>
+		copy the id " ami-0ff8a91507f77f867"
+	Keypair=AWS-25AUG
+	subnet id="subnet-0a98799176775fa9e"(subnet id of the EC2 launch machine)	
+
+	Auto-assign public IP=Enable
+	Securitygroupid="sg-00b9df43e1fbcdb25"
+			(click on the security group--> we can find the Groupid="sg-00b9df43e1fbcdb25")
+	
+	
+	Advanced Details
+	==========
+		leave the remaining to the default values
+		userdata=
+			#!/bin/bash
+			yum update -y
+			yum install nginx -y
+		<click on create a launch template>
+2. Now , launch the machine using the template
+		launchtemplates ---->select the template("AWStrainings11")-->Actions-->launch instance from template.
+		- it launches the machine now with the values we provided in the launctemplate.
+		-check in the EC2 services, your second machine is launch using the Launch templates.
+	
+		-Terminate the machine which you launch using the "templates"
+
+==========================================================
+Spot Requests
+	-It is also same as EC2 Machine/
+	-you can bid for these instances
+	-we call normal EC2 machine as "on-demand" instance
+	-if there is demand for the  EC2 instances, then immediately it will shutdown the spot instances
+	-it give less than 2 min. notice before shutdown the instances. So,we need to go for the spot instances
+	  only for the servers/machines doesn't effect your data like webservers.
+	- but we shouldn't place the Database Servers or Application servers in these kind of instances.
+	
+
+EC2
+
+1.Request Spot Instances ----Select Request Type---Request  'Submit a one-time Spot instance request'
+	Total target capacity=1
+	AMI=Amazon Linux AMI 2017.09.1(HVM), SSD Volume Type(ami-97785bed)
+	Instances type=	<select> m3.medium (1 vCPU, 3.75 GiB, 1 x 4 SSD)
+	
+	Network= <select the vpc>
+	Availbility Zone=Pricing will be differ in different availability zones.
+	
+	To know about the pricing,
+	Spot request fulfillment
+	===============
+		-select the "set your max price(per instance/hour)
+		- click on <pricing History> button
+
+2. Now comeback to "Request Spot Instances" page
+		Availability Zone
+			-select either us-east1a and us-east1c.
+			-it means, it can install the machine on the above selected zones.
+
+		EBS volumes
+			Size(GiB)
+				if you want to increase the volume size you can.
+		SecurityGroups
+			-select the security group,which you want to assign
+		Auto-assign IPv4 Public IP=Enable
+		Key pair name=AWS-25AUG
+
+		<now launch the machine>
+
+3. EC2 Running instances
+		Machines are launced now.
+	But, how can you differentiate the EC2 "On-Demand Machine" and "Spot Instance Machine"
+	 	-for On-Demand EC2 machine,we have
+			Actions
+				-Instance state =Stop,Reboot and Terminate
+		But for "SpotInstance Machine"
+			Actions
+				-instance state= Reboot and Terminate
+		Because, stop or start options are in the hands of AWS control for SpotInstances.
+
+
+4. Billing is like
+	-if we start this SpotInstance machine, and shutdown after 1-minute. It will charge for 1hour bill.
+	-In the first one hour, if you shutdown and start the instance for 4 times, then you will get 4hours. bill.
+	-Every reboot is considered as 1 hour.
+
+
+
+Reserved Instances
+check in browser="Amazon EC2 pricing"
+					 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+	
+
+	
+	
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

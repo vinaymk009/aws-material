@@ -1,0 +1,207 @@
+AutoScaling
+=======
+AWS Auto Scaling is a service that automatically monitors and adjusts compute resources to maintain performance for applications hosted in the Amazon Web Services (AWS) public cloud.
+
+Benefits:
+=====
+
+	-Amazon EC2 Auto Scaling helps you ensure that you have the correct number of Amazon EC2 instances available to handle the load for your application. 
+	-Setup scaling quickly
+	-Pay Only for What You Need
+	-Automatically Maintain Performance
+	-Make Smart Scaling Decisions
+
+
+Steps:
+
+1. Launch the instance
+	(3rdstep)
+	 Advanced Details
+	  #!/bin/bash
+		yum update -y
+		yum install nginx -y
+		service nginx start
+		chkconfig nginx on
+		yum install stress -y
+	(Note: To increase the load need to install the 'Stress' software)
+
+    AddTags step:
+	Name: BaseMachine
+
+2.Once instance is launched, copy the public DNS url and paste in browser. It has to display the nginx web page.
+
+3. Connect through the SSH
+	-check the stress software is installed or not
+	[root@ip-10-1-1-140 ~]# stress --version
+		
+	[root@ip-10-1-1-140 ~]# service nginx status
+		nginx (pid  2725) is running...
+	-checking the nginx is on or not
+	[root@ip-10-1-1-140 ~]# chkconfig nginx on
+
+4. Now,we have setup everything, need to create an image now.
+	select the instance and right click
+	  create image->
+		 imagename="Autoscalingimage"
+		image description= Autoscalingimage
+	<createimage>
+
+5. Once completed with the above step, ssh connection will lost need to  reconnect the instance. Because, once we create image, it requires reboot.
+	-Autoscaling is used for the static data
+	-Autoscaling is mostly useful for the Webservers and ApplicationServers
+	-Autoscaling is not used for the Database Servers.(Note:autoscaling is there for database using RD5)
+
+6. Create a TargetGroup now,
+	LoadBalancing
+		TargetGroupName = Autoscaling
+		Protocol=TCP
+		Port=80
+		Targettype=Instance
+		VPC=AWS=25AUG
+		<create>
+
+7. Create a load balancer
+	Select 'TCP' create
+	 Name=autoscaling
+	VPC=AWS-25AUG
+	 select all subnets of in 'availabilityzones'
+	<nextscreen>
+	  Target Group=existing target group
+	   name=autoscaling
+	
+	<Register Targets>
+	<create>
+	
+	-Check the AMI image is created under "Images-> AMI"
+
+
+8. Autoscaling
+	1. Launch Configurations
+	2. Autoscaling Groups
+
+	Create launch configurations -->launch the machine similar to EC2 instances except here
+	need to select the "	MyAMIs"
+		name=autoscaling
+		'check' Enable CloudWatch detailed monitoring
+
+9. Autoscaling Group
+	-create autoscaling group
+		-select 'use existing launching group'
+		-select the existing machinge <next>
+		  Groupname=	
+		  Start with'1' instance
+		  Network=AWS-25AUG
+		  subnet=select the 3 subnets in it
+
+	Advanced Details
+		Load balancing 'check' Receive traffic from one or more load balancers
+		Target groups=from the dropdown select the existing target group 'Autoscaling'
+		HealthChecktype=EC2
+		Health Check Grace Period =30 seconds
+		Monitoring= 'check'Enable CloudWatch detailed monitoring
+
+	<configure scaling policies>
+	
+	'check' Use scaling policies to adjust the capacity of this group
+
+	Scale between '1' and '3' instances. These will be the minimum and maximum size of your group.
+
+	click the link 'Scale the Auto Scaling group using step or simple scaling policies'
+10.   Increase Group Size
+	 Execute policy when: click on link 'Add new alarm'
+		It opens in new window
+		   Add new alarm =Maximum
+		   Is:>=40 percent
+		   for atleast>=40 consecutive periods '1minute'
+		<create alarm>
+
+	We can edit here 'breaches the alarm' by edit default it will be 5 min. we can decrease to 1 min.
+
+	 Take the action: 'Add'  '2'  Instances when  '40'  <= CPUUtilization < +infinity
+	  Instances need:30 seconds
+
+
+	Decrease Group Size
+	=============
+		Execute policy when: click on link 'Add new alarm'
+		It opens in new window
+		  AddNewalarm = 'Average'
+		  Is: <=39 percent
+		  For atleast =1 consecutive periods '1 minute'
+		  <create alarm>
+		breaches the alarm threshold: CPUUtilization <= 39 for 60 seconds
+		 Take the action: 'Remove'  '2'  Instances when  '40'  <= CPUUtilization < +infinity
+	  	  Instances need:30 seconds
+
+		click <NextConfigure Notifications>
+11. Create Auto Scaling Group
+	 Name=AutoScalingServer
+	<review>
+	Once we complete these steps, immediately it will launch one instance in your EC2 instances.
+	
+12. Autoscaling
+	AutoscalingGroup
+	-check in <activity History>
+	-New Instance will be create in EC2 instance 
+
+13. Now, if you can check the new machine should  launch
+	check in EC2 instances.
+	- copy id of the machine we created i.e EC2 instance =i-0ccb8192774aefc33 (BaseMachine)
+	  (because when we are destroying the autoscaling it has to start from here)
+
+14. 
+	Open three windows 
+		one= EC2
+		two=Load Balancer
+		three=Autoscaling
+	
+	LoadBalancer
+		under the description tab
+		  copy the DNS name url=autoscaling-fd19634130f871b5.elb.us-east-1.amazonaws.com
+		  -open a private window and paste the url
+		
+15. TargetGroups
+	<targets>tab
+		<registered targets>
+		   autoscaling is added.
+
+16. Need to increase the stress in cpu utilization
+	Now login to the SSH for the 'AutoscalingServer' from EC2 -Instances
+	 once login, check the 'stress' software is working or not
+		[root@ip-10-1-3-193 ~]# stress
+	
+	EC2-Instances
+		select the 'AutoscalingServer'
+		  <Monitoring>tab
+			CPU Utilization as of now, it is less than a 1%, so need to increase the cpu utilization.
+			when it crosses more than 40%, it creates two instances automatically
+		SSH
+		    -[root@ip-10-1-3-193 ~]# stress --cpu 8 --io 4 --vm 2 --vm-bytes 128M --timeout 30m
+			(Wait for 1 minute, so that cpu utilization is increases more than 40%)
+		Once again you check the 
+			-CPU Utilization (under the monitoring tab), now it shows more than 40%.
+			- check in Autoscaling (activity history tab).It is launching 2 instances.
+			-at the same time, in EC2, two new instances with 'AutoscalingServer' will be created.
+					
+
+		
+		
+		
+		
+
+	 
+	
+
+
+
+
+
+
+
+
+
+
+
+
+
+

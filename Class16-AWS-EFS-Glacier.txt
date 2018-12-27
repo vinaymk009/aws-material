@@ -1,0 +1,214 @@
+Amazon Elastic File System(EFS)
+Amazon EFS provides file storage for use with your EC2 instances
+
+for Linux users =NFS(Network File System)
+for windows users= Sharedfolders
+		  (Mypc- MapNetworkDrive)
+
+EBS
+	-It is Block Storage
+	-EBS volumes are assigned to only one server only
+	-Data will be assigined as blocks
+	-when 100gb of data is assigned, need to format (fdisk),make filesystem(mkfs) and then 
+	  mount the volume
+
+	If it is Windows, need to format the volume using the NTFS then we can use it.
+
+EFS
+	-File Storage
+	-used to dump the files like shared folders
+	-It is for the whole region.
+
+(Image)
+
+AWS Storage
+	-EFS
+	 create-vpc----select the subnets---<create>---<next>----<create file system>
+	
+	-it creates the 3 ips in the background , check.
+	-to connect from us-east-1a to EFS , need to connect through the DNS name
+
+		eg: DNS name fs-89579668.efs.us-east-1.amazonaws.com
+		     we are calling this DNS as FQDN(fully qualified Domain Name)
+			-fs-89579668.efs.(hostname)
+			-us-east-1.amazonaws.com(domain name)
+(image)
+	-When we place any file in the EFS, it will be accessbile to all the subnets which is connected to the EFS.
+	-Then why we use DNS name to connect, instead we can use only relevant ips. But , if we the ips are down our connectivity will be down.
+	-But if we connect through DNS, though if ip is down it will connect through the other ips which are available(other subnets).
+	
+	- Can be connected to EFS through IP but DNS is recommended.
+
+
+1.Launch Two Instances
+
+2. connect through SSH
+	for the first instance
+		[root@ip-10-1-1-100 ~]# nslookup fs-89579668.efs.us-east-1.amazonaws.com
+		Server:         10.1.0.2
+		Address:        10.1.0.2#53
+
+		Non-authoritative answer:
+		Name:   fs-89579668.efs.us-east-1.amazonaws.com
+		Address: 10.1.1.40
+
+	for the second instance
+
+		[root@ip-10-1-2-100 ~]# nslookup fs-89579668.efs.us-east-1.amazonaws.com
+		Server:         10.1.0.2
+		Address:        10.1.0.2#53
+
+		Non-authoritative answer:
+		Name:   fs-89579668.efs.us-east-1.amazonaws.com
+		Address: 10.1.2.134
+
+	-though we are connected to the same DNS,  through the different ips.
+
+3. Now mount the volumes
+	create a directory
+	
+	[root@ip-10-1-1-100 ~]# mkdir 1a-dir
+	
+	EFS 
+	File system access 	
+	   Amazon EC2 mount instructions (from local VPC) (Hyperlink)
+
+		Using the NFS client:(copy the following and make some changes)
+		     sudo mount -t nfs4 -o nfsvers=4.1,rsize=1048576,wsize=1048576,hard,timeo=600,retrans=2,noresvport fs-89579668.efs.us-east-1.amazonaws.com:/ efs
+		
+		Connect to SSH
+
+		    [root@ip-10-1-1-100 ~]# cd 1a-dir
+		    [root@ip-10-1-1-100 1a-dir]# pwd
+			 /root/1a-dir	
+
+		sudo mount -t nfs4 -o nfsvers=4.1,rsize=1048576,wsize=1048576,hard,timeo=600,retrans=2,noresvport fs-89579668.efs.us-east-1.amazonaws.com:/ /root/1a-dir
+
+		mount the volume 
+	
+		[root@ip-10-1-1-100 1a-dir]# sudo mount -t nfs4 -o nfsvers=4.1,rsize=1048576,wsize=1048576,hard,timeo=600,retrans=2,noresvport fs-89579668.efs.us-east-				1.amazonaws.com:/ /root/1a-dir
+		
+		[root@ip-10-1-1-100 1a-dir]# df -h
+
+		
+4. Same steps(3) for the  second instance as well
+		[root@ip-10-1-2-100 ~]# mkdir 1bfolder
+		[root@ip-10-1-2-100 1bfolder]# sudo mount -t nfs4 -o nfsvers=4.1,rsize=1048576,wsize=1048576,hard,timeo=600,retrans=2,noresvport fs-89579668.efs.us-east-				1.amazonaws.com:/ /root/1bfolder
+
+		[root@ip-10-1-2-100 1bfolder]# ls
+		[root@ip-10-1-2-100 1bfolder]# cd ..
+		[root@ip-10-1-2-100 ~]# cd /root/1bfolder
+		[root@ip-10-1-2-100 1bfolder]# ls
+		testfile1
+
+	Now create the other file in the us-east-1b
+	
+		[root@ip-10-1-2-100 1bfolder]# cp testfile1  testfile2
+		[root@ip-10-1-2-100 1bfolder]# ls
+		testfile1  testfile2
+		[root@ip-10-1-2-100 1bfolder]# vim testfile2
+	
+	Now, get back to the 1a-server instance in SSH
+		[root@ip-10-1-1-100 1a-dir]# cd ..
+		[root@ip-10-1-1-100 ~]# cd /root/1a-dir
+		[root@ip-10-1-1-100 1a-dir]# ls
+		tesfile2  testfile1  testfile2
+
+
+		
+UseCase:
+	   I want all the log files in the different regions,  should get in one central location.How?
+
+
+
+	Solution: Using EBS, we can assign log file only for the server which is that region only.So, using EBS is not possible But,
+		using EFS, we can achieve this by sharing the logfile in all the availability zones in an region.	
+
+===================================================
+
+Glaciers
+ 
+	-It is nothing but tape drives or archiving system.
+	      i.e Data which is not modified then we can place that data into glaciers eg: Old News Papers ...
+
+	-Amazon S3 Glacier is a secure, durable, and extremely low-cost cloud storage service for data archiving and long-term backup.
+	-Amazon Glacier is a low-cost cloud storage service for data with longer retrieval times offered by Amazon Web Services (AWS). 
+	-A developer uses a cold data cloud service such as Amazon Glacier to move infrequently accessed data to archival storage to save money on storage costs.
+	-It is designed to deliver 99.999999999% durability.
+	-Customers can store data for as little as $0.004 per gigabyte per month
+	-To keep costs low yet suitable for varying retrieval needs, Amazon S3 Glacier provides three options for access to archives, from a few minutes to several hours.
+
+
+Two Types of Databackups:
+=================
+	1. Tape Drives
+		-Issues with tape drives
+			-Need Support or backup team
+			- Tape Media Changes
+
+			-FC (Fibre Channel)Switch
+			  (Note:A Fibre Channel switch is a networking device that is compatible with the Fibre Channel (FC) protocol 
+				and designed for use in a dedicated storage area network (SAN).)
+
+			-To keep all the infrastructure we need RealEstate
+		Now a days, TapeDrives are too expensive eventually it is vanishing now.
+
+	2. Disk Base Backup
+		-is a data backup and recovery method that backs data up to hard disk storage.
+		https://searchdatabackup.techtarget.com/definition/disk-backup-or-disk-based-backup
+
+
+
+	Note:With the recent rise in cloud computing, many businesses are moving away from physical data storage. 
+	        However, data tapes still offer some significant advantages over other options when used for data archiving. 
+	        Digital data tapes offer several advantages over cloud storage and other long-term backup options.
+
+
+
+Step1:
+===
+Storage - S3 Glacier
+	Create Vault 
+	    vaultname="mylogs"
+	<next><next><submit>
+
+Once create a vault, we can't place the data directly into it like S3 Storage.
+we can place data into glacier is two types
+	1. Through S3 Lifecycle Policy
+	2. Using 3rd party tools or Applications
+		-Veritas net backup AWS Glacier configuaration.
+
+
+
+Step2.
+====	-Now a days, most of the third party tools were supporting the AWS Cloud.
+	Search for "veritas net backup aws glacier confuguration" in google.
+	https://www.veritas.com/support/en_US/doc/58500769-127471507-0/v126612396-127471507
+
+	-Download "FastGlacier" software
+	   https://fastglacier.com/
+
+	-After installation, need to connect to our AWS Glacier.
+
+	-Open fastglacier
+	    AccountName = "AnyName"
+	    Account Type="Amazon Glacier"
+	    Access Key ID =AKIAIXWMKPV7BZIIH4NQ 
+	    SecretAccess Key=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
+	
+	click on <Add New Account>
+
+[To get the Access Key ID and Secret Access Key 
+
+ Open IAM 
+    and get the following:
+	 Access Key ID =AKIAIXWMKPV7BZIIH4NQ 
+
+	Secret access key = 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]
+
+
+AWS Glacier Pricing:
+	
+	- Storage space 0.0004$ per gigabytes per month.
+	- But when we retrieve the data from this storage it charge.
+

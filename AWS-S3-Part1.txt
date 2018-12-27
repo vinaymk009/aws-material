@@ -1,0 +1,226 @@
+arn:aws:s3:::www.androidapple.com
+
+download awscli
+
+https://docs.aws.amazon.com/cli/latest/userguide/awscli-install-windows.html
+
+Accesskeyid
+AKIAJEDBYUYGPIAWVJCA 
+secretkaccesskey
+wDy8ii9n0pfrFU5SpGJNVZ0wr6qfQ8oGQpYNiJKe
+
+aws s3 sync s3://wildrydes-us-east-1/WebApplication/1_StaticWebHosting/website s3://www.androidapple.com --region us-east-1
+==================================================================================
+
+
+S3 	-Simple Storage SErvice 
+	-Also called as Object Storage(EBS Storage)
+	
+EFS	-Elastic File System
+	-its like Shared Folders for Windows
+	-NFS(Network file system) for Linux
+
+Glaciers are like Archive or Backups
+
+Bucket
+	-Ec2,AMI ,Snapshots are storing in S3 storage in the background
+	-Most of the static data is in S3 only.
+	-AWS locks,Cloud trial,Audit locking
+
+	-Bucket naming should be unique in AWS S3.
+	-S3 is Global(but not exactly global)
+	-IAM is purely global
+
+	-To keep the data into S3 need to create bucket and store data into it.
+
+Steps:
+====
+
+classroom
+arn:aws:s3:::www.hydmicrosoft.com
+
+AKIAIJMJY2235QX27EZQ 
+
+DPOitqwlqjukuM1wpGM5bO/ys0wk2709q/2RdYzo
+
+aws s3 sync s3://wildrydes-us-east-1/WebApplication/1_StaticWebHosting/website s3://www.hydmicrosoft.com --region us-east-1
+
+
+
+1.Storage
+	S3
+	-<createbucket>
+		Bucket name =www.techstore.com
+		Region (by default it will select us-east(N.Virginia))
+	Properties
+		uncheck all the check boxes
+		<createbucket>
+
+
+2. Once bucket has created, 'select' the www.techstore.com.
+	<copyBucketARN>
+	ARN=Amazon Resource Name
+		arn:aws:s3:::www.techstore.com
+	(Need to place this 'arn format' in script or when we write the bucket policies)
+
+3.Add/upload some files into the bucket
+	-Any type of files we can upload
+	-by default when you upload some files into this bucket. A url will be generated for this individual files
+	-click the link and open in new tab
+		https://s3.amazonaws.com/www.techstore.com/MyWordlist.txt
+	    but it will not display as we didn't make this file as 'public'
+	To make the file as public, select  the file 
+			Actions- MakePublic
+	-Now refresh the browser tab , it will display the file content.
+
+4.Properties Tab
+	-Open Browser 'aws cli downloads'
+	-https://docs.amazonaws.cn/en_us/cli/latest/userguide/awscli-install-windows.html
+	-Open command prompt
+		C:\Users\India>aws
+
+5. Open IAM
+	<adduser>
+		User name =S3user
+		Access type=Programmatic access
+	<nextpermissions>
+	
+	AttachExistingPolicies <tab>
+		Filterpolicies=S3F
+			'select' AmazonS3FullAccess
+		<review>
+
+		<createuser>
+	(Now, we get the accesskey and secret key)
+	
+	Access Key ID=AKIAJ2VSTI5JVTSMDPLA 
+	Secret Access Key= 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
+
+
+
+6. Open command prompt
+	C:\Users\India>aws configure
+	AWS Access Key ID [****************VJCA]: AKIAJ2VSTI5JVTSMDPLA
+	AWS Secret Access Key [****************iJKe]: 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
+	Default region name [us-east-1]: us-east-1
+	Default output format [table]: table
+
+	C:\Users\India>aws s3 ls
+	C:\Users\India>aws s3 ls
+	2018-12-04 13:02:30 www.androidapple.com
+	2018-11-06 09:44:23 www.classroomaws.in
+	2018-12-04 23:58:14 www.techstore.com
+	
+	(Note:why I am showing this AWS CLI is, when we download and configure the static website hosting. Through this CLI files can be fastly downloaded)
+
+
+7. Versioning
+    =======
+	-Go back to bucket and delete the uploaded files
+	-When we delete the files from here, we can't get back, we lost those files.So, if we want to get back the files,though if it was deleted.
+	
+	Enable the Versioning.
+		-Open Notepad file
+		-add some text into it and upload the file into the bucket.
+		-by making some changes into it, upload the file into the bucket and overwrite the file.
+		-select the file and 
+		       actions->make public
+		-Now we can see the file in the browser,because we make it public.
+		-Observe now, now link Version,hide and show are visible after enabled the Versioning.
+		-Now delete the file from the bucket, but click on the link 'show'. It displays the versioning of your files
+
+
+8.Static Website Hosting
+   =============
+	'select 'Use this bucket to host a website
+		index document	
+			index.html
+		Error document
+			error.html	
+		<save>
+	
+	Now, I will place a website into it.
+
+	-Open Browser search 'wildrydes github'
+	-select _static WebHosting
+	-https://github.com/aws-samples/aws-serverless-workshops/tree/master/WebApplication/1_StaticWebHosting
+	
+	Upload Content
+		CLI step-by-step instructions (expand for details)
+		-aws s3 sync s3://wildrydes-us-east-1/WebApplication/1_StaticWebHosting/website s3://YOUR_BUCKET_NAME --region YOUR_BUCKET_REGION
+
+		aws s3 sync s3://wildrydes-us-east-1/WebApplication/1_StaticWebHosting/website s3://www.techstore.com --region us-east-1
+		
+	
+	Open Command prompt
+	-it downloads all the website files into it.
+	C:\Users\India>aws s3 sync s3://wildrydes-us-east-1/WebApplication/1_StaticWebHosting/website s3://www.techstore.com --region us-east-1
+
+	-Manually to download these files are difficult that is why we use AWS CLI
+
+9. Bucket files, screen and refresh it.
+	- we can see all the website files are visible here now.
+	-select the index.html and open the url in the browser, but we can't see the content. Because we didn't make it public
+	-select index.html 
+		actions-make public
+	- refresh the browser
+
+
+10.Properties
+     ======
+	S3Pricing
+
+	https://aws.amazon.com/s3/pricing/
+
+	Transfer Acceleration
+		Use the new accelerated endpoint for faster data transfers, which will incur an additional fee
+		- It will use to upload the data into the servers.
+		-especially, for the media houses it will be useful for them.
+
+	
+    How far our data storage is safe in S3?
+
+	- We are uploading the files into the Bucket but, how far these files are secured.
+	-we have two main things in S3
+		1. Availability = Service Uptime 
+			         -they provide 99.99%
+			         -https://en.wikipedia.org/wiki/High_availability
+				-Planned downtime that is intimated 6 months before.
+				-unplanned downtime 	
+
+		2. Durability =How safe our data
+			   	-AWS providing 99.999999999%
+				  i.e if we upload 1000 files, then in the next 10 thousand years only one file might be lost.
+			
+			Standard  = It keeps 3 copies of data
+
+			Standard -IA(infrequent access)=keeps 3 copies of data
+			OneZone = keep only one copy of data
+			Reduced Redundancy
+	
+			https://aws.amazon.com/s3/storage-classes/
+			https://docs.aws.amazon.com/AmazonS3/latest/dev/storage-class-intro.html
+
+
+
+
+===========================================================================
+AWS Free Usage Tier* As part of the AWS Free Usage Tier, you can get started with Amazon S3 for free.
+
+Upon sign-up, new AWS customers receive 5GB of Amazon S3 storage in the S3 Standard storage class, 
+20,000 GET Requests, 2,000 PUT Requests, and 15GB of Data Transfer Out each month for one year.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

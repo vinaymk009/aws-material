@@ -1,0 +1,197 @@
+
+EndPoints
+======
+A VPC endpoint enables you to privately connect your VPC to supported AWS services and VPC endpoint services powered by PrivateLink without requiring an internet gateway, NAT device, VPN connection, or AWS Direct Connect connection.
+
+Instances in your VPC do not require public IP addresses to communicate with resources in the service.
+
+Endpoints are virtual devices.
+
+They are horizontally scaled, redundant, and highly available VPC components that allow communication between instances in your VPC and AWS services without imposing availability risks or bandwidth constraints on your network traffic.
+
+Steps:
+
+1. Services  --->
+	Storage
+	 S3(Simple Storage Service)
+	S3 is like google drive. We can place files, folders, videos.
+
+2. Create a Bucket  ->www.knowledgeit.com--->(follow the other steps )-> create a bucket
+	-select the bucket(newly created)->click tab 'Permissions'->'AccessControlList'->under public access 'select'everyone then from the popup box 'select'ListObjects and <save>
+
+3. Need to add/upload files into bucket
+		click on the bucket you create - upload
+			-> Add files ->(upload some files from desktop or any location)
+
+4. After uploading your file into the bucket
+	S3 bucket
+	   select your uploaded file ---> click on permissions tab-->Public access (select everyone radio button)--> on pop up box(select "Listobjects" -->save
+
+5.  upload another file here 
+		addfiles-->upload <newfile>
+	(Note:Everytime when you upload a file, you will a <url> default)
+	select the file ->make public
+
+6. When we upload or download the files in S3 through the internet, we get the billing. Because in private network if you are downloading the files
+     through the NAT then two ways we are getting the bill.
+
+  -No billing for uploading the files into s3 , but, when we downloading those files through intertnet or NAT then, it will be charged.
+        then we get two types of bills to us:
+		-S3 billing
+		-NAT billing
+
+7. Now, through this endpoints ,we can avoid this billing
+
+8. Launch EC2 instance now
+		machinename="EndPointTesting"
+
+9. Connect to your EC2 session through putty
+		copy the url from s3 bucket file which we uploaded
+		https://s3.amazonaws.com/www.knowledgeit.com/AnsibleSteps.txt
+	  Putty
+
+		[root@ip-10-1-4-100 ~]# wget https://s3.amazonaws.com/www.knowledgeit.com/AnsibleSteps.txt
+		[root@ip-10-1-4-100 ~]# cat AnsibleSteps.txt
+	(Note:here we are accessing the S3 and downloaded file into the subnet over the internet, so here S3 billing is levied on us)
+
+10. Now we try to use endpoints to download the file from S3
+	change few settings in RoutingTable
+	
+	Launch another EC2 instance
+		Machinename="PrivateServer"
+	Routing Tables
+		AWS-25OCT-NAT
+			Routes=
+				remove the nat gateway
+				it should have only local route.
+			subnet associations
+			             -Only-AWS-25AUG-Database subnet should be connected 
+				-public subnet should not be selected
+				
+
+11. Open the cmd prompt and ping the private server "Public DNS (IPv4)"
+	C:\Users\India>ping ec2-18-234-127-179.compute-1.amazonaws.com
+	Pinging ec2-18-234-127-179.compute-1.amazonaws.com [18.234.127.179] with 32 bytes of data:
+	Request timed out.
+	Request timed out.	
+
+12. Now, login to private server through the public server(which is already connected in putty)
+	take the private ip of "privateserver"instance.
+		[root@ip-10-1-4-100 ~]# ssh ec2-user@10.1.7.100
+		
+		we need key to connect.
+13. create the key to connect
+	
+	[root@ip-10-1-4-100 ~]# vi aws-25aug.pem
+	[root@ip-10-1-4-100 ~]# ll
+	total 4
+	-rw-r--r-- 1 root root 1675 Nov  5 04:30 aws-25aug.pem
+	[root@ip-10-1-4-100 ~]# chmod 400 aws-25aug.pem
+
+14. Open SSH(putty)
+		
+	[root@ip-10-1-4-100 ~]# ssh -i aws-25aug.pem  ec2-user@10.1.7.100
+	
+	with this we connected to the private server instance
+
+	https://aws.amazon.com/amazon-linux-ami/2018.03-release-notes/
+	14 package(s) needed for security, out of 29 available
+	Run "sudo yum update" to apply all updates.
+
+	[ec2-user@ip-10-1-7-100 ~]$sudo su -
+	now connect to outside network,
+
+	
+	with this connected to the private server now.
+	[root@ip-10-1-7-100 ~]# ping www.google.com
+	but when you ping www.google.com, it is not connected because it is not connected to the Internet Gateway.
+	
+	now copy the s3 uploaded file and ping from this server
+	[root@ip-10-1-7-100 ~]# wget https://s3.amazonaws.com/www.knowledgeit.com/AnsibleSteps.txt
+	Resolving s3.amazonaws.com (s3.amazonaws.com)... 52.216.228.123
+	Connecting to s3.amazonaws.com (s3.amazonaws.com)|52.216.228.123|:443...
+	
+	(Note: But here it is not connecting and download this file into this "privateserver")
+
+15. Now, we need create EndPoints (creating the private link to download this file internally)
+	Endpoints
+		createEndpoint- select "com.amazonaws.us-east-1.s3"
+		vpc= AWS-25OCT
+		select RouteTableID either you select specified subnet or all the subnets.
+
+	click "createEndPoint"
+	with this endpoint we have established the separate route to "S3" and subnets in VPC.So, from any ec2 instance we can download this
+	s3 storage file into their servers without using your IGW so it is not billable now.
+		
+16. Now try to copy the S3 storage file into this private server
+	[root@ip-10-1-7-100 ~]# wget https://s3.amazonaws.com/www.knowledgeit.com/AnsibleSteps.txt
+
+	it successfully downloaded now.
+	[root@ip-10-1-7-100 ~]# cat AnsibleSteps.txt
+	
+17. Now, try to connect the S3 after removing the endpoint.
+	-remove  end point and again try this, but it will connect to your S3 which indicates that "EndPoint" is necessary to 
+	 to download the files internally.
+
+	[root@ip-10-1-7-100 ~]# wget https://s3.amazonaws.com/www.knowledgeit.com/AnsibleSteps.txt
+
+	Again create the Endpoint and connect again.
+	
+
+
+
+		
+ 
+
+	
+
+
+
+		
+	
+
+
+
+
+
+
+
+
+
+
+
+	
+			
+		
+
+
+	
+
+	
+		
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+	

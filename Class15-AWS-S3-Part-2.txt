@@ -1,0 +1,221 @@
+
+Permissions:
+=======
+
+1. 'Access Control List', in real time this option we rarely used. 
+	-It is read/write mode only
+	-using this we can't provide permissions to individual user.
+
+2. Mostly we use only the Bucket Policy
+	-using the bucket policy, we can provide access to the individual user.
+	-
+3. CORS Configuaration
+
+Bucket Policy
+========
+4. if we want to create a bucket policy where we need to make this as public
+
+-Search for 'bucket policy examples'
+
+https://docs.aws.amazon.com/AmazonS3/latest/dev/example-bucket-policies.html
+
+Granting Read-Only Permission to an Anonymous User 
+-it will be in JSON format
+
+<copy the script>
+
+{
+  "Version":"2012-10-17",
+  "Statement":[
+    {
+      "Sid":"AddPerm",
+      "Effect":"Allow",
+      "Principal": "*",
+      "Action":["s3:GetObject"],
+      "Resource":["arn:aws:s3:::examplebucket/*"]
+    }
+  ]
+}
+
+
+	-Effect Means acess permission "Allow or Deny"
+	-Principal Means Any "AWS user" , "*" means anyone can use it.
+	-GetObject Means read only , that is we can only download
+	-Resource, copy the bucket ARN url
+
+(copyARN=arn:aws:s3:::www.androidapple.com)
+
+5.
+-Copy the above script and 'select' the bucket www.androidapple.com -Permisssions-BucketPolicy and Paste the following script
+
+{
+  "Version":"2012-10-17",
+  "Statement":[
+    {
+      "Sid":"AddPerm",
+      "Effect":"Allow",
+      "Principal": "*",
+      "Action":["s3:GetObject"],
+      "Resource":["arn:aws:s3:::www.religare.com/*"]
+    }
+  ]
+}
+
+-after this, your permissions tab becomes 'public', that means anyone can access this bucket.
+To check this,
+	-overview-select the 'index.html' and open the url in the browser
+	
+		
+6. Now, anyone can access this bucket globally.But, if we got the requirement that, this bucket has to be used only by your office employees not from the outside.
+
+	https://docs.aws.amazon.com/AmazonS3/latest/dev/example-bucket-policies.html
+
+	Restricting Access to Specific IP Addresses 
+
+	-copy the script
+		{
+			  "Version": "2012-10-17",
+  			  "Id": "S3PolicyId1",
+			  "Statement": [
+    		{
+     			 "Sid": "IPAllow",
+     			 "Effect": "Allow",
+      			"Principal": "*",
+      			"Action": "s3:*",
+     			 "Resource": "arn:aws:s3:::examplebucket/*",
+    	  "Condition": {
+         			"IpAddress": {"aws:SourceIp": "54.240.143.0/24"},
+         			"NotIpAddress": {"aws:SourceIp": "54.240.143.188/32"} 
+     		      } 
+    		} 
+ 	      ]
+	}
+
+Here we need make some changes in the bucket script
+	-check my ip from google
+	- 103.232.128.16
+
+	{
+
+  	"Version":"2012-10-17",
+ 	 "Statement":[
+   	 {
+    	  "Sid":"AddPerm",
+     	 "Effect":"Allow",
+     	 "Principal": "*",
+      	"Action":["s3:GetObject"],
+      	"Resource":["arn:aws:s3:::www.androidapple.com/*"]
+     	 "Condition": {
+       	  "IpAddress": {"aws:SourceIp": "110.224.135.186/32"}
+          
+      	} 
+    	}
+          ]
+        }
+
+Need to check whether the above script syntax is correct or wrong. Open JSONLint Validator tool
+	-https://jsonlint.com/
+	-copy the above json script and validate.
+	{
+ 	 "Version":"2012-10-17",
+ 	 "Statement":[
+    	{
+     	 "Sid":"AddPerm",
+     	 "Effect":"Allow",
+     	 "Principal": "*",
+     	 "Action":["s3:GetObject"],
+     	 "Resource":["arn:aws:s3:::www.androidapple.com/*"],
+    	  "Condition": {
+     	    "IpAddress": {"aws:SourceIp": "110.224.135.186/32"}
+          
+    	  } 
+  	  }
+  	]
+	}
+
+-Copy the above script and paste in permissions-bucketpolicy
+-now try to access the 'wildrydes' website. It will stop accessing the site
+
+7. To give an access to new ip/user try the following script
+	newip from any user=115.98 .21 .141 / 32
+	
+	{
+	"Version": "2012-10-17",
+	"Statement": [{
+		"Sid": "AddPerm",
+		"Effect": "Allow",
+		"Principal": "*",
+		"Action": ["s3:GetObject"],
+		"Resource": "arn:aws:s3:::www.androidapple.com/*",
+		"Condition": {
+			"IpAddress": {
+				"aws:SourceIp": ["110.224.135.186/32", "115.98 .21 .141 / 32"]
+
+			}
+
+		}
+	}]
+}
+
+
+8. Now, ask the  user ip ("115.98 .21 .141 / 32") to refresh the link
+	https://s3.amazonaws.com/www.androidapple.com/index.html
+	-it has to work for him.
+
+   Like this we can restrict the users to access your bucket.
+	We have many other ways to restrict access to the bucket
+		-Restricting Access to a Specific HTTP Referrer 
+		go through this url and practice
+		https://docs.aws.amazon.com/AmazonS3/latest/dev/example-bucket-policies.html
+		
+	(Note:Interview Questions: Mostly they will ask about this Bucket policies. So need to work on it)
+
+
+====================================================================
+CORS Configuration(Cross- Origin Resource Sharing)
+--------------------------
+	-it is used when you want to provide your bucket access to the third party websites(eg: facebook,microsoft)
+
+	https://docs.aws.amazon.com/AmazonS3/latest/dev/cors.html#how-do-i-enable-cors
+	
+	<CORSConfiguration>
+		 <CORSRule>
+	  		 <AllowedOrigin>http://www.facebook.com</AllowedOrigin>
+  	 		<AllowedMethod>PUT</AllowedMethod>
+  	 		<AllowedMethod>POST</AllowedMethod>
+   			<AllowedMethod>DELETE</AllowedMethod>
+   			<AllowedHeader>*</AllowedHeader>
+	 	</CORSRule>
+	</CORSConfiguration>
+
+
+
+
+
+
+
+
+aws s3 sync s3://wildrydes-us-east-1/WebApplication/1_StaticWebHosting/website s3://www.religare.com --region us-east-1
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
